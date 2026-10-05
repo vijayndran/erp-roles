@@ -144,6 +144,12 @@ input{flex:1;min-width:200px}
 .sk{font-size:13px;margin:4px 0}.sk b{color:var(--muted);font-weight:600}
 .alias{font-size:12px;color:var(--muted);margin-top:6px}
 .count{color:var(--muted);font-size:13px;margin-bottom:10px}
+.hint{color:var(--muted);font-size:12px;margin:-8px 0 14px}
+.resolved{font-size:12px;color:var(--accent);background:#0b1220;border:1px solid var(--accent);border-radius:6px;padding:4px 8px;margin-bottom:8px}
+.actions{margin-top:10px}
+.copyjd{background:transparent;color:var(--accent);border:1px solid var(--accent);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer}
+.copyjd:hover{background:var(--accent);color:#061018}
+.copyjd.ok{background:#16a34a;border-color:#16a34a;color:#fff}
 .promo{background:linear-gradient(135deg,#0b1220,#15213b);border:1px solid var(--accent);border-radius:12px;padding:16px 18px;margin:4px 0 20px}
 .promo h2{margin:0 0 6px;font-size:16px;color:var(--fg)}
 .promo p{margin:0 0 10px;font-size:13px;color:var(--muted)}
@@ -159,11 +165,12 @@ ${meta.promo ? `<div class="promo">
 <a class="cta" href="${meta.promo.ctaUrl}" target="_blank" rel="noopener">${meta.promo.ctaText || meta.promo.ctaUrl}</a>${meta.promo.teaser ? `<span class="teaser">🚀 ${meta.promo.teaser}</span>` : ''}
 </div>` : ''}
 <div class="controls">
-<input id="q" placeholder="Search title, skill, platform or alias…" oninput="render()">
+<input id="q" placeholder="Type any job title — e.g. 'SAP S2P Consultant', 'Ariba', 'Basis' — to resolve it…" oninput="render()">
 <select id="plat" onchange="render()"><option value="">All platforms</option>${Object.entries(meta.platforms).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select>
 <select id="stream" onchange="render()"><option value="">All streams</option>${streams.map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select>
 <select id="tier" onchange="render()"><option value="">All tiers</option>${tiers.map(t=>`<option value="${t}">${tierLabel[t]}</option>`).join('')}</select>
 </div>
+<div class="hint">Search resolves any raw/alias title to its canonical role. Hit <b>Copy JD</b> on a card for a paste-ready job description.</div>
 <div class="count" id="count"></div>
 <div class="grid" id="grid"></div>
 <footer>Platform-aware ERP role taxonomy. Enriched + <a href="roles.json">roles.json</a>. ${meta.compNote}</footer>
@@ -174,8 +181,38 @@ const PLATS=${JSON.stringify(meta.platforms)};
 const STREAMS=${JSON.stringify(meta.streams)};
 const TIERL=${JSON.stringify(tierLabel)};
 function money(n){return 'RM'+n.toLocaleString('en-MY')}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function buildJD(r){
+  const plats=r.platforms.map(p=>PLATS[p]).join(', ');
+  return [
+    r.positionTitle,
+    '',
+    'Platform(s): '+plats,
+    'Stream: '+STREAMS[r.stream]+'  |  Level: '+TIERL[r.tier],
+    'Indicative comp: '+money(r.compMin)+'–'+money(r.compMax)+'/mo',
+    '',
+    'Summary',
+    r.summary,
+    '',
+    'Required skills',
+    ...r.requiredSkills.map(s=>'- '+s),
+    '',
+    'Preferred skills',
+    ...r.preferredSkills.map(s=>'- '+s),
+    '',
+    'Also known as: '+r.aliases.join(', ')
+  ].join('\\n');
+}
+function copyJD(id,btn){
+  const r=ROLES.find(x=>x.id===id); if(!r)return;
+  const text=buildJD(r);
+  const done=()=>{const o=btn.textContent;btn.textContent='Copied ✓';btn.classList.add('ok');setTimeout(()=>{btn.textContent=o;btn.classList.remove('ok')},1500)};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(done).catch(()=>fallbackCopy(text,done))}
+  else fallbackCopy(text,done);
+}
+function fallbackCopy(text,done){const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done()}catch(e){}document.body.removeChild(ta)}
 function render(){
-  const q=document.getElementById('q').value.toLowerCase();
+  const q=document.getElementById('q').value.toLowerCase().trim();
   const pl=document.getElementById('plat').value, st=document.getElementById('stream').value, ti=document.getElementById('tier').value;
   const out=ROLES.filter(r=>{
     if(pl&&!r.platforms.includes(pl))return false;
@@ -186,17 +223,23 @@ function render(){
     const hay=(r.positionTitle+' '+platText+' '+r.requiredSkills.join(' ')+' '+r.preferredSkills.join(' ')+' '+r.aliases.join(' ')).toLowerCase();
     return hay.includes(q);
   });
-  document.getElementById('count').textContent=out.length+' role'+(out.length===1?'':'s');
-  document.getElementById('grid').innerHTML=out.map(r=>\`
-    <div class="role">
-      <h3>\${r.positionTitle}</h3>
-      <div class="badges">\${r.platforms.map(p=>\`<span class="badge plat">\${PLATS[p]}</span>\`).join('')}<span class="badge">\${STREAMS[r.stream]}</span><span class="badge">\${TIERL[r.tier]}</span></div>
+  document.getElementById('count').textContent=out.length+' role'+(out.length===1?'':'s')+(q?' matching "'+q+'"':'');
+  document.getElementById('grid').innerHTML=out.map(r=>{
+    const matchAlias=q?r.aliases.find(a=>a.toLowerCase().includes(q)&&!r.positionTitle.toLowerCase().includes(q)):null;
+    const resolved=matchAlias?\`<div class="resolved">"\${esc(matchAlias)}" → <b>\${esc(r.positionTitle)}</b></div>\`:'';
+    return \`
+    <div class="role" id="\${r.id}">
+      \${resolved}
+      <h3>\${esc(r.positionTitle)}</h3>
+      <div class="badges">\${r.platforms.map(p=>\`<span class="badge plat">\${esc(PLATS[p])}</span>\`).join('')}<span class="badge">\${esc(STREAMS[r.stream])}</span><span class="badge">\${esc(TIERL[r.tier])}</span></div>
       <div class="comp">\${money(r.compMin)}–\${money(r.compMax)}/mo</div>
-      <p class="summary">\${r.summary}</p>
-      <div class="sk"><b>Required:</b> \${r.requiredSkills.join(', ')}</div>
-      <div class="sk"><b>Preferred:</b> \${r.preferredSkills.join(', ')}</div>
-      <div class="alias">Also seen as: \${r.aliases.join(', ')}</div>
-    </div>\`).join('');
+      <p class="summary">\${esc(r.summary)}</p>
+      <div class="sk"><b>Required:</b> \${esc(r.requiredSkills.join(', '))}</div>
+      <div class="sk"><b>Preferred:</b> \${esc(r.preferredSkills.join(', '))}</div>
+      <div class="alias">Also seen as: \${esc(r.aliases.join(', '))}</div>
+      <div class="actions"><button class="copyjd" onclick="copyJD('\${r.id}',this)">Copy JD</button></div>
+    </div>\`;
+  }).join('');
 }
 render();
 </script></body></html>`;
