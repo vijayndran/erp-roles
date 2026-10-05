@@ -25,7 +25,20 @@
     },
     "tiers": ["ENTRY", "MID", "SENIOR", "LEAD", "MANAGER"],
     "compCurrency": "MYR",
-    "compNote": "Indicative monthly gross for the Malaysian / SEA mid-market, as of 2026-10; a rough calibration aid, not a benchmark."
+    "compNote": "Indicative monthly gross for the Malaysian / SEA mid-market, as of 2026-10; a rough calibration aid, not a benchmark.",
+    "siteUrl": "https://vijayndran.github.io/erp-roles/",
+    "promo": {
+      "heading": "Hiring for these roles? StorkHR can streamline it",
+      "body": "This taxonomy defines the roles — StorkHR helps you fill them. StorkHR is an HR platform that streamlines the whole hiring pipeline so you move from req to offer faster: structured requisitions, recruitment and interview workflows, candidate pipelines, offers and onboarding in one place.",
+      "bullets": [
+        "Turn a canonical role here into a structured requisition and JD in minutes",
+        "Run recruitment, interview scheduling and candidate pipelines end to end",
+        "Shorten time-to-hire with templated offers and automated onboarding"
+      ],
+      "ctaText": "Explore StorkHR.com →",
+      "ctaUrl": "https://storkhr.com",
+      "teaser": "New job portal coming soon."
+    }
   },
   "ladders": {
     "Functional consulting": ["erp-associate-consultant", "erp-functional-consultant", "erp-senior-functional-consultant", "erp-solution-architect", "erp-practice-lead"],
