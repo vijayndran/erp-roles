@@ -1,0 +1,29 @@
+name: build
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  generate-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # roles.json must be valid JSON and pass the generator's own validation,
+      # and the committed README.md / index.html must match a fresh regen.
+      - name: Regenerate from roles.json
+        run: node generate.js
+
+      - name: Fail if README.md / index.html are out of sync with roles.json
+        run: |
+          if ! git diff --exit-code -- README.md index.html; then
+            echo "::error::README.md or index.html is out of sync with roles.json."
+            echo "Run 'node generate.js' locally and commit the regenerated files."
+            exit 1
+          fi

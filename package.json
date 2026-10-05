@@ -1,0 +1,14 @@
+{
+  "name": "erp-roles",
+  "version": "1.0.0",
+  "description": "Multi-platform ERP role taxonomy generated from roles.json.",
+  "license": "MIT",
+  "scripts": {
+    "generate": "node generate.js",
+    "check": "node generate.js && git diff --exit-code -- README.md index.html"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vijayndran/erp-roles"
+  }
+}
