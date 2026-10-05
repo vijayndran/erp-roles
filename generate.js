@@ -121,9 +121,53 @@ md += `\n*See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full workflow (the ge
 fs.writeFileSync(path.join(__dirname, 'README.md'), md);
 
 // ---- index.html (interactive) ----
+const siteUrl = (meta.siteUrl || '').replace(/\/+$/, '/') || '';
+const metaDesc = `${roles.length} canonical ERP roles across ${Object.keys(meta.platforms).length} platforms (${Object.values(meta.platforms).join(', ')}) — skills, comp bands and a reverse lookup that resolves any messy ERP job title.`;
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const seoHead = `
+<meta name="description" content="${esc(metaDesc)}">
+<meta name="robots" content="index,follow">
+${siteUrl ? `<link rel="canonical" href="${siteUrl}">` : ''}
+<meta property="og:type" content="website">
+<meta property="og:title" content="${esc(meta.title)}">
+<meta property="og:description" content="${esc(metaDesc)}">
+${siteUrl ? `<meta property="og:url" content="${siteUrl}">` : ''}
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="${esc(meta.title)}">
+<meta name="twitter:description" content="${esc(metaDesc)}">`;
+const jsonLd = JSON.stringify({
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  name: meta.title,
+  description: metaDesc,
+  numberOfItems: roles.length,
+  itemListElement: roles.map((r, i) => ({
+    '@type': 'ListItem',
+    position: i + 1,
+    item: {
+      '@type': 'JobPosting',
+      title: r.positionTitle,
+      description: r.summary,
+      occupationalCategory: meta.streams[r.stream],
+      skills: r.requiredSkills.concat(r.preferredSkills).join(', '),
+      ...(siteUrl ? { url: siteUrl + '#' + r.id } : {})
+    }
+  }))
+});
+// Static, crawlable fallback — full content without executing JS.
+const noscriptHtml = roles.map(r =>
+  `<section id="${r.id}"><h2>${esc(r.positionTitle)}</h2>` +
+  `<p>${esc(meta.streams[r.stream])} · ${esc(tierLabel[r.tier])} · ${r.platforms.map(p => esc(meta.platforms[p])).join(', ')} · ${money(r.compMin)}–${money(r.compMax)}/mo</p>` +
+  `<p>${esc(r.summary)}</p>` +
+  `<p><strong>Required:</strong> ${esc(r.requiredSkills.join(', '))}</p>` +
+  `<p><strong>Preferred:</strong> ${esc(r.preferredSkills.join(', '))}</p>` +
+  `<p><strong>Also seen as:</strong> ${esc(r.aliases.join(', '))}</p></section>`
+).join('\n');
+
 const html = `<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${meta.title}</title>
+<title>${meta.title}</title>${seoHead}
+<script type="application/ld+json">${jsonLd}<\/script>
 <style>
 :root{--bg:#0f172a;--card:#1e293b;--fg:#e5e7eb;--muted:#94a3b8;--border:#334155;--accent:#38bdf8;}
 *{box-sizing:border-box}body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--fg);line-height:1.5}
@@ -150,6 +194,9 @@ input{flex:1;min-width:200px}
 .copyjd{background:transparent;color:var(--accent);border:1px solid var(--accent);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer}
 .copyjd:hover{background:var(--accent);color:#061018}
 .copyjd.ok{background:#16a34a;border-color:#16a34a;color:#fff}
+.noscript-roles{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+.noscript-roles section{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px}
+.noscript-roles h2{font-size:16px;margin:0 0 6px}
 .promo{background:linear-gradient(135deg,#0b1220,#15213b);border:1px solid var(--accent);border-radius:12px;padding:16px 18px;margin:4px 0 20px}
 .promo h2{margin:0 0 6px;font-size:16px;color:var(--fg)}
 .promo p{margin:0 0 10px;font-size:13px;color:var(--muted)}
@@ -173,6 +220,7 @@ ${meta.promo ? `<div class="promo">
 <div class="hint">Search resolves any raw/alias title to its canonical role. Hit <b>Copy JD</b> on a card for a paste-ready job description.</div>
 <div class="count" id="count"></div>
 <div class="grid" id="grid"></div>
+<noscript><div class="noscript-roles">${noscriptHtml}</div></noscript>
 <footer>Platform-aware ERP role taxonomy. Enriched + <a href="roles.json">roles.json</a>. ${meta.compNote}</footer>
 </div>
 <script>
@@ -244,4 +292,13 @@ function render(){
 render();
 </script></body></html>`;
 fs.writeFileSync(path.join(__dirname, 'index.html'), html);
+
+// ---- sitemap.xml + robots.txt (only when a siteUrl is configured) ----
+if (siteUrl) {
+  const urls = [siteUrl].concat(roles.map(r => siteUrl + '#' + r.id));
+  const sm = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+    urls.map(u => `  <url><loc>${u}</loc></url>`).join('\n') + `\n</urlset>\n`;
+  fs.writeFileSync(path.join(__dirname, 'sitemap.xml'), sm);
+  fs.writeFileSync(path.join(__dirname, 'robots.txt'), `User-agent: *\nAllow: /\nSitemap: ${siteUrl}sitemap.xml\n`);
+}
 console.log('Generated README.md + index.html from roles.json (' + roles.length + ' roles)');

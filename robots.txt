@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://vijayndran.github.io/erp-roles/sitemap.xml

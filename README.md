@@ -6,6 +6,22 @@ A platform-aware taxonomy of ERP job roles. Normalises the messy, platform-ambig
 
 > Platform-aware taxonomy of ERP roles across **8 platforms** (SAP S/4HANA & ECC, SAP Business One, Oracle (Fusion / EBS), Microsoft Dynamics 365, Workday, Infor M3, NetSuite, Sage). De-duplicates messy ERP job titles into **40 canonical roles** across functional / technical / Basis-admin / data / leadership streams, each with a one-line JD skeleton, required/preferred skills, an indicative comp band and the raw aliases that map to it — shipped as machine-readable `roles.json` plus a searchable [web page](https://vijayndran.github.io/erp-roles/).
 
+---
+
+### Hiring for these roles? StorkHR can streamline it
+
+This taxonomy defines the roles — StorkHR helps you fill them. StorkHR is an HR platform that streamlines the whole hiring pipeline so you move from req to offer faster: structured requisitions, recruitment and interview workflows, candidate pipelines, offers and onboarding in one place.
+
+- Turn a canonical role here into a structured requisition and JD in minutes
+- Run recruitment, interview scheduling and candidate pipelines end to end
+- Shorten time-to-hire with templated offers and automated onboarding
+
+**[Explore StorkHR.com →](https://storkhr.com)**
+
+> 🚀 **New job portal coming soon.**
+
+---
+
 ## What's different from a plain list
 
 | A plain ERP job-title list | This report |
